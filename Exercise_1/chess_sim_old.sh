@@ -36,12 +36,8 @@ calculate_board_state() {
     fi
 
     #promotation 
-    if [[ ${#move} = 5 ]]; then
-        if [[ "$piece" = "P" ]]; then
-            promote_piece=$(printf "\\$(printf '%03o' $(( $(printf "%d" "'${move:4:1}") - 32 )))") #convert to upper case
-        else
-            promote_piece=${move:4:1}
-        fi
+    if [[ "$piece" = "P" ]] && (( move_end_number == 8 )) || [[ "$piece" = "p" ]] && (( move_end_number == 1 )); then
+        promote_piece=${move:4:1}
         board_state=${board_state:0:move_end_location}$promote_piece${board_state:move_end_location+1}
     fi
     echo $board_state
@@ -72,7 +68,7 @@ move_to_board_state_location() {
 display_board() {
     board_state_array=$1
     move=$2
-    echo "Move $move/"$((${#board_state_array[@]} - 1))
+    echo "Move $move/${#board_state_array[@]}"
     echo "  a b c d e f g h"
     for (( i=0; i<64; i++ )); do
         if (( i % 8 == 0 )); then
@@ -80,8 +76,7 @@ display_board() {
         fi
         echo -n " ${board_state_array[$move]:i:1} "
         if (( i % 8 == 7 )); then
-
-            echo " $((8-i/8))"
+            echo
         fi
     done
     echo "  a b c d e f g h"
@@ -104,15 +99,18 @@ if [ ! -f "$pgn_file" ]; then
 fi
 moves=""
 echo "Metadata from PGN file:"
-while IFS= read -r line || [[ -n "$line" ]]; do
+while IFS= read -r line; do
     if [[ "$line" == *"["* ]]; then
         echo "$line"
     else
-        moves+="$line "
+        moves+="$line"
+        moves+=" "
     fi
-done < "$1"
+done < "$pgn_file"
 echo
-moves_arr=($(python3 parse_moves.py "$moves"))
+moves=$(python3 parse_moves.py "$moves")
+moves_arr=($moves)
+echo $moves
 move=0
 board_state_array=("rnbqkbnrpppppppp................................PPPPPPPPRNBQKBNR")
 while [ $move -lt ${#moves_arr[@]} ]; do

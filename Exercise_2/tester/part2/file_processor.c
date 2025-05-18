@@ -9,24 +9,37 @@
 #define MAX_LINE_LENGTH 1024
 
 void process_read_command(int data_file, int results_file, off_t start_offset, off_t end_offset) {
-    if (start_offset < 0 || end_offset < start_offset) return;
+    if (start_offset < 0 || end_offset < start_offset) {
+        fprintf(stderr, "Invalid read range: start=%ld end=%ld\n", start_offset, end_offset);
+        return;
+    }
 
     off_t read_length = end_offset - start_offset + 1;
     off_t file_size = lseek(data_file, 0, SEEK_END);
-    if (start_offset >= file_size) return;
+    if (start_offset >= file_size) {
+        fprintf(stderr, "Start offset beyond file size: start=%ld size=%ld\n", start_offset, file_size);
+        return;
+    }
 
     if (end_offset >= file_size) {
         end_offset = file_size - 1;
         read_length = end_offset - start_offset + 1;
     }
 
-    lseek(data_file, start_offset, SEEK_SET);
+    if (lseek(data_file, start_offset, SEEK_SET) == -1) {
+        perror("lseek failed in read");
+        return;
+    }
 
     char *read_buffer = malloc(read_length);
-    if (!read_buffer) return;
+    if (!read_buffer) {
+        fprintf(stderr, "Memory allocation failed in read\n");
+        return;
+    }
 
     ssize_t bytes_read = read(data_file, read_buffer, read_length);
     if (bytes_read == -1) {
+        perror("read failed");
         free(read_buffer);
         return;
     }
@@ -39,32 +52,51 @@ void process_read_command(int data_file, int results_file, off_t start_offset, o
 
 void process_write_command(int data_file, off_t insert_offset, const char *insert_text) {
     size_t insert_len = strlen(insert_text);
-    if (insert_len == 0) return;
+    if (insert_len == 0) {
+        fprintf(stderr, "Empty insert text\n");
+        return;
+    }
 
     off_t file_size = lseek(data_file, 0, SEEK_END);
-    if (insert_offset < 0 || insert_offset > file_size) return;
+    if (insert_offset < 0 || insert_offset > file_size) {
+        fprintf(stderr, "Invalid insert offset: %ld (file size: %ld)\n", insert_offset, file_size);
+        return;
+    }
 
     if (insert_offset == file_size) {
-        lseek(data_file, insert_offset, SEEK_SET);
+        if (lseek(data_file, insert_offset, SEEK_SET) == -1) {
+            perror("lseek failed at end write");
+            return;
+        }
         write(data_file, insert_text, insert_len);
         return;
     }
 
     size_t remaining_len = file_size - insert_offset;
-    char *tail_buffer = malloc(remaining_len);
-    if (!tail_buffer) return;
+    char *str_end = malloc(remaining_len);
+    if (!str_end) {
+        fprintf(stderr, "Memory allocation failed in write\n");
+        return;
+    }
 
-    lseek(data_file, insert_offset, SEEK_SET);
-    read(data_file, tail_buffer, remaining_len);
+    if (lseek(data_file, insert_offset, SEEK_SET) == -1 || read(data_file, str_end, remaining_len) == -1) {
+        perror("lseek/read failed in write");
+        free(str_end);
+        return;
+    }
 
-    lseek(data_file, insert_offset, SEEK_SET);
-    write(data_file, insert_text, insert_len);
-    write(data_file, tail_buffer, remaining_len);
+    if (lseek(data_file, insert_offset, SEEK_SET) == -1 ||
+        write(data_file, insert_text, insert_len) == -1 ||
+        write(data_file, str_end, remaining_len) == -1) {
+        perror("write failed");
+        free(str_end);
+        return;
+    }
 
-    free(tail_buffer);
+    free(str_end);
 }
 
-int run_editor(int argc, char *argv[]) {
+int rw_file_editor(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <data_file> <requests_file>\n", argv[0]);
         return EXIT_FAILURE;
@@ -112,6 +144,8 @@ int run_editor(int argc, char *argv[]) {
                 off_t start, end;
                 if (sscanf(input_line, "R %ld %ld", &start, &end) == 2) {
                     process_read_command(data_file, results_file, start, end);
+                } else {
+                    fprintf(stderr, "Malformed R command: %s\n", input_line);
                 }
                 break;
             }
@@ -123,6 +157,8 @@ int run_editor(int argc, char *argv[]) {
                     off_t offset = atol(offset_str);
                     text_ptr++;
                     process_write_command(data_file, offset, text_ptr);
+                } else {
+                    fprintf(stderr, "Malformed W command: %s\n", input_line);
                 }
                 break;
             }
@@ -131,8 +167,8 @@ int run_editor(int argc, char *argv[]) {
                 close(data_file);
                 close(results_file);
                 return EXIT_SUCCESS;
-
             default:
+                fprintf(stderr, "Unknown command: %s\n", input_line);
                 break;
         }
     }
@@ -144,5 +180,5 @@ int run_editor(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    return run_editor(argc, argv);
+    return rw_file_editor(argc, argv);
 }
