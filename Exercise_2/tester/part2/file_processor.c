@@ -22,8 +22,9 @@ void process_read_command(int data_file, int results_file, off_t start_offset, o
     }
 
     if (end_offset >= file_size) {
-        end_offset = file_size - 1;
-        read_length = end_offset - start_offset + 1;
+        fprintf(stderr, "End offset beyond file size: end=%ld size=%ld\n", end_offset, file_size);
+        read_length = file_size - start_offset;
+        return;
     }
 
     if (lseek(data_file, start_offset, SEEK_SET) == -1) {

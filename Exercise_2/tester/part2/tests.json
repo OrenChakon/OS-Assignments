@@ -19,8 +19,8 @@
     },
     {
         "data": "1234567890",
-        "requests": "W 10 whatsapp\nR 2 2\nW 9 NEVERGONNAGIVEYOUUP\nW 14 HelloWorld\nR 0 25\nW 0 98\nW 10 WINDOWSISTRASH\nR 2 30\nQ",
+        "requests": "W 10 whatsapp\nR 2 40\nW 9 NEVERGONNAGIVEYOUUP\nW 14 HelloWorld\nR 0 25\nW 0 98\nW 10 WINDOWSISTRASH\nR 2 30\nQ",
         "data_changed": "9812345678WINDOWSISTRASH9NEVERHelloWorldGONNAGIVEYOUUP0whatsapp",
-        "read_results": "3\n123456789NEVERHelloWorldGO\n12345678WINDOWSISTRASH9NEVERH"
+        "read_results": "123456789NEVERHelloWorldGO\n12345678WINDOWSISTRASH9NEVERH"
     }
 ]

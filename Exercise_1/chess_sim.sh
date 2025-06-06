@@ -120,6 +120,7 @@ while [ $move -lt ${#moves_arr[@]} ]; do
     board_state_array+=($(calculate_board_state ${board_state_array[$move]} ${moves_arr[$move]}))
     move=$(($move+1))
 done
+echo "Moves: ${moves_arr[@]}"
 move=0
 display_board "${board_state_array}" $move
 echo -n "press 'd' to move forward, 'a' to move back, 'w' to go to the start, 's' to go to the end, 'q' to quit: "

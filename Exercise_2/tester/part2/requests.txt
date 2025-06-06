@@ -1,5 +1,5 @@
 W 10 whatsapp
-R 2 2
+R 2 40
 W 9 NEVERGONNAGIVEYOUUP
 W 14 HelloWorld
 R 0 25
